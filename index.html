@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тройная бонуска</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Основные стили */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #1a1a2e;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+        /* Контейнер для всего блока */
+        .main-container {
+             /* max-w-md делает блок немного шире для 3 барабанов */
+        }
+        /* Контейнер для группы барабанов */
+        .reels-group-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px; /* Промежуток между барабанами */
+            margin-bottom: 20px;
+        }
+        .reel-container-wrapper {
+            position: relative;
+            width: 150px; /* Ширина одного барабана */
+            height: 180px; /* Высота на 3 элемента */
+            background-color: #0f0f1a;
+            border: 3px solid #feca57;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+        /* Указатель/подсветка средней ячейки */
+        .reel-pointer {
+            position: absolute;
+            top: 50%;
+            left: -3px; /* Чуть ближе к краю */
+            right: -3px;
+            height: 60px; /* Высота одного элемента */
+            transform: translateY(-50%);
+            border-top: 3px solid #e67e22;
+            border-bottom: 3px solid #e67e22;
+            z-index: 5;
+            pointer-events: none;
+            box-sizing: border-box;
+        }
+
+        .reel {
+            transition: transform 5s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        .reel-item {
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.85rem; /* Шрифт сделан немного меньше */
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            border-bottom: 1px solid #40407a;
+            padding: 0 3px; /* Уменьшен padding */
+            text-align: center;
+            overflow-wrap: break-word; /* Перенос слов если нужно */
+        }
+        .reel-item:last-child {
+             border-bottom: none;
+        }
+
+        /* Стили кнопок */
+        .spin-button {
+            background: linear-gradient(180deg, #5f27cd 0%, #9b59b6 100%);
+            transition: background 0.3s ease, transform 0.1s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+        .spin-button:hover {
+            background: linear-gradient(180deg, #9b59b6 0%, #5f27cd 100%);
+        }
+        .spin-button:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 3px rgba(0, 0, 0, 0.2);
+        }
+        .spin-button:disabled {
+            background: #999;
+            cursor: not-allowed;
+            opacity: 0.7;
+            box-shadow: none;
+        }
+         .bonus-button {
+            background: linear-gradient(180deg, #1dd1a1 0%, #1abc9c 100%);
+            transition: background 0.3s ease, transform 0.1s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            color: white;
+        }
+        .bonus-button:hover {
+            background: linear-gradient(180deg, #1abc9c 0%, #1dd1a1 100%);
+        }
+         .bonus-button:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 3px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="main-container bg-gray-800 p-8 rounded-lg shadow-xl text-center max-w-md w-full">
+        <h1 class="text-2xl font-bold text-yellow-400 mb-4">ТРОЙНАЯ БОНУСКА</h1>
+
+        <div class="reels-group-container">
+            <div class="reel-container-wrapper">
+                 <div class="reel-pointer"></div>
+                 <div id="reel1" class="reel"></div>
+            </div>
+            <div class="reel-container-wrapper">
+                 <div class="reel-pointer"></div>
+                 <div id="reel2" class="reel"></div>
+            </div>
+            <div class="reel-container-wrapper">
+                 <div class="reel-pointer"></div>
+                 <div id="reel3" class="reel"></div>
+            </div>
+        </div>
+
+        <button id="spin-button" class="spin-button text-white font-bold py-3 px-8 rounded-lg text-xl w-full mb-4">
+            КРУТИТЬ
+        </button>
+
+        <p id="result-message" class="text-yellow-300 font-semibold text-lg mb-4 min-h-[2rem]"></p> <a href="#" target="_blank" id="bonus-link" class="hidden">
+            <button id="bonus-button" class="bonus-button font-bold py-3 px-8 rounded-lg text-xl w-full">
+                ЗАБРАТЬ ПРИЗ
+            </button>
+        </a>
+    </div>
+
+    <script>
+        // Получаем ссылки на все три барабана
+        const reels = [
+            document.getElementById('reel1'),
+            document.getElementById('reel2'),
+            document.getElementById('reel3')
+        ];
+        const spinButton = document.getElementById('spin-button');
+        const resultMessage = document.getElementById('result-message');
+        const bonusLink = document.getElementById('bonus-link');
+
+        // Обновленный базовый список призов с добавленными элементами
+        const basePrizes = [
+            // Выигрышные призы (должны быть в списке)
+            { name: 'БОНУСКА ЗА 50.000₽ (-92%)', url: 'https://t.me/testbot1winbot?start=11' }, // Winner 1
+            { name: '+150% К ДЕПОЗИТУ', url: 'https://t.me/testbot1winbot?start=11' }, // Winner 2
+            { name: 'СИГНАЛЫ НА ИГРЫ', url: 'https://t.me/testbot1winbot?start=11' }, // Winner 3
+            // Старые призы
+            { name: '50FS' },
+            { name: '100FS' },
+            { name: '+100% К ДЕПОЗИТУ' },
+            { name: 'X2 ПРИЗЫ' },
+            { name: 'ВАУЧЕР 10000₽' },
+            { name: 'БОНУСКА ЗА 10.000₽ (-90%)' },
+            { name: 'БОНУСКА ЗА 100.000₽ (-95%)' },
+            { name: 'ЧЕК НА 10 TON' },
+            { name: 'ЧЕК НА 100 USDT' },
+            // Новые добавленные призы
+            { name: 'X5 ШАНС' },
+            { name: 'X10 ШАНС' },
+            { name: 'ВАУЧЕР НА 5.000₽' },
+            { name: 'ЧЕК НА 50 TON' },
+            { name: 'БОНУСКА ЗА 25.000₽ (-90%)' },
+            { name: '200FS' },
+            { name: 'КЕШБЭК 50%' },
+            { name: 'УДВОЕНИЕ БАЛАНСА' }
+        ];
+
+        // Фиксированные выигрышные призы для каждого барабана (ссылки на объекты из basePrizes)
+        const winningPrizes = [
+            basePrizes.find(p => p.name === 'БОНУСКА ЗА 50.000₽ (-92%)'),
+            basePrizes.find(p => p.name === '+150% К ДЕПОЗИТУ'),
+            basePrizes.find(p => p.name === 'СИГНАЛЫ НА ИГРЫ')
+        ];
+
+        // Проверка, что все выигрышные призы найдены в базовом списке
+        if (winningPrizes.some(p => !p)) {
+            console.error("Критическая ошибка: Один или несколько выигрышных призов не найдены в базовом списке призов!");
+            // Можно добавить обработку ошибки, например, отключить кнопку
+            spinButton.disabled = true;
+            spinButton.textContent = "Ошибка конфигурации";
+        }
+
+
+        const itemHeight = 60;
+        const visibleItems = 3;
+        const reelContainerHeight = itemHeight * visibleItems;
+
+        let isSpinning = false;
+        let hasSpun = false;
+
+        // Ключ для localStorage
+        const localStorageKey = 'tripleReelState';
+
+        const repetitions = 5; // Количество повторений списка призов для анимации
+
+        // Функция для перемешивания массива (Fisher-Yates shuffle)
+        function shuffleArray(array) {
+            let currentIndex = array.length, randomIndex;
+            const newArray = [...array];
+            while (currentIndex > 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [newArray[currentIndex], newArray[randomIndex]] = [
+                    newArray[randomIndex], newArray[currentIndex]];
+            }
+            return newArray;
+        }
+
+        // Создаем ТРИ разных полных списка призов
+        const fullPrizeLists = [[], [], []];
+        // Убедимся, что выигрышные призы добавлены достаточное кол-во раз
+        const ensureWinningPrizes = (list, prizeName) => {
+            const count = list.filter(p => p.name === prizeName).length;
+            const needed = repetitions; // Нужно хотя бы по одному на каждую репетицию
+            if (count < needed) {
+                const prize = basePrizes.find(p => p.name === prizeName);
+                if(prize) {
+                    for(let k=0; k < needed - count; k++) {
+                        // Добавляем в случайные места в середине списка
+                        const insertIndex = Math.floor(Math.random() * (basePrizes.length * (repetitions - 2))) + basePrizes.length;
+                        list.splice(insertIndex, 0, prize);
+                    }
+                }
+            }
+        };
+
+        for (let i = 0; i < repetitions; i++) {
+            const shuffled1 = shuffleArray(basePrizes);
+            const shuffled2 = shuffleArray(basePrizes);
+            const shuffled3 = shuffleArray(basePrizes);
+            fullPrizeLists[0] = fullPrizeLists[0].concat(shuffled1);
+            fullPrizeLists[1] = fullPrizeLists[1].concat(shuffled2);
+            fullPrizeLists[2] = fullPrizeLists[2].concat(shuffled3);
+        }
+        // Дополнительно проверяем и добавляем выигрышные призы, если их мало после шаффла
+        winningPrizes.forEach((wp, index) => {
+            if(wp) ensureWinningPrizes(fullPrizeLists[index], wp.name);
+        });
+
+
+        // Функция для заполнения ОДНОГО барабана ИЗ ЕГО СПИСКА
+        function populateReel(reelElement, listIndex) {
+            reelElement.innerHTML = '';
+            const listToUse = fullPrizeLists[listIndex];
+            if (!listToUse) {
+                console.error(`Ошибка: Список призов для барабана ${listIndex + 1} не найден.`);
+                return;
+            }
+            listToUse.forEach(prize => {
+                const item = document.createElement('div');
+                item.classList.add('reel-item');
+                item.textContent = prize.name;
+                item.dataset.prize = prize.name;
+                reelElement.appendChild(item);
+            });
+        }
+
+        // Функция установки начального СЛУЧАЙНОГО положения для ОДНОГО барабана
+        function setInitialRandomPosition(reelElement, listIndex) {
+            const randomIndex = Math.floor(Math.random() * basePrizes.length);
+            const randomPrizeName = basePrizes[randomIndex].name;
+            const initialIndex = findMiddlePrizeIndex(randomPrizeName, listIndex);
+
+            reelElement.style.transition = 'none';
+            if (initialIndex !== -1) {
+                reelElement.style.transform = `translateY(${calculateTranslateY(initialIndex)}px)`;
+            } else {
+                 console.warn(`Не удалось найти случайный начальный индекс для '${randomPrizeName}' в списке ${listIndex + 1}, используется индекс 0.`);
+                 reelElement.style.transform = `translateY(${calculateTranslateY(0)}px)`;
+            }
+             setTimeout(() => {
+                reelElement.style.transition = 'transform 5s cubic-bezier(0.25, 1, 0.5, 1)';
+             }, 50);
+        }
+
+         // Функция установки ПОЛОЖЕНИЯ ВЫИГРЫША для ОДНОГО барабана
+        function setWinningPosition(reelElement, listIndex) {
+            const targetPrize = winningPrizes[listIndex];
+             if (!targetPrize) {
+                 console.error(`Ошибка: Не найден выигрышный приз для барабана ${listIndex + 1}.`);
+                 reelElement.style.transform = `translateY(${calculateTranslateY(0)}px)`;
+                 return;
+             }
+            const targetIndex = findMiddlePrizeIndex(targetPrize.name, listIndex);
+
+            reelElement.style.transition = 'none';
+            if (targetIndex !== -1) {
+                reelElement.style.transform = `translateY(${calculateTranslateY(targetIndex)}px)`;
+            } else {
+                 console.warn(`Не удалось найти выигрышный приз '${targetPrize.name}' в середине списка ${listIndex + 1}, используется индекс 0.`);
+                 reelElement.style.transform = `translateY(${calculateTranslateY(0)}px)`;
+            }
+             setTimeout(() => {
+                reelElement.style.transition = 'transform 5s cubic-bezier(0.25, 1, 0.5, 1)';
+             }, 50);
+        }
+
+
+        // Функция инициализации для ВСЕХ барабанов
+        function initializeReels() {
+            reels.forEach((reelElement, index) => populateReel(reelElement, index));
+
+            const savedState = localStorage.getItem(localStorageKey);
+
+            if (savedState) {
+                const state = JSON.parse(savedState);
+                hasSpun = state.hasSpun;
+            } else {
+                 hasSpun = false;
+            }
+
+            if (hasSpun) {
+                 reels.forEach((reelElement, index) => {
+                    setWinningPosition(reelElement, index);
+                 });
+                 showResult();
+                 spinButton.disabled = true;
+            } else {
+                 reels.forEach((reelElement, index) => {
+                    setInitialRandomPosition(reelElement, index);
+                 });
+                 resultMessage.textContent = '';
+                 bonusLink.classList.add('hidden');
+                 spinButton.disabled = false;
+            }
+        }
+
+        // Функция сброса состояния для ВСЕХ барабанов
+        function resetReelsState() {
+             hasSpun = false;
+             spinButton.disabled = false;
+             resultMessage.textContent = '';
+             bonusLink.classList.add('hidden');
+             localStorage.removeItem(localStorageKey);
+             reels.forEach((reelElement, index) => {
+                 setInitialRandomPosition(reelElement, index);
+             });
+        }
+
+        // Функция для поиска индекса приза в средней части ЕГО СПИСКА
+        function findMiddlePrizeIndex(prizeName, listIndex) {
+             const listToSearch = fullPrizeLists[listIndex];
+             if (!listToSearch) return -1;
+
+             const middleStartIndex = Math.floor(repetitions / 2) * basePrizes.length;
+             const middleEndIndex = middleStartIndex + basePrizes.length;
+
+             for (let i = middleStartIndex; i < middleEndIndex && i < listToSearch.length; i++) {
+                 if (listToSearch[i].name === prizeName) {
+                     return i;
+                 }
+             }
+             // Ищем во всем списке, если не нашли в середине
+             console.warn(`Prize '${prizeName}' not found in the middle of list ${listIndex + 1}. Searching entire list.`);
+             for (let i = 0; i < listToSearch.length; i++) {
+                  if (listToSearch[i].name === prizeName) {
+                     return i; // Возвращаем первый найденный
+                 }
+             }
+             console.error(`Prize '${prizeName}' not found anywhere in list ${listIndex + 1}.`);
+             return -1;
+        }
+
+        // Функция расчета translateY для центрирования элемента с заданным индексом
+        function calculateTranslateY(index) {
+             const targetTopPosition = (reelContainerHeight / 2) - (itemHeight / 2);
+             const currentTopPosition = index * itemHeight;
+             return targetTopPosition - currentTopPosition;
+        }
+
+        // Функция отображения результата
+        function showResult() {
+            resultMessage.textContent = `Вы выиграли: ${winningPrizes[0]?.name || 'Приз1'}, ${winningPrizes[1]?.name || 'Приз2'}, ${winningPrizes[2]?.name || 'Приз3'}!`;
+
+            if (winningPrizes[0] && winningPrizes[0].url) {
+                 bonusLink.href = winningPrizes[0].url;
+                 bonusLink.classList.remove('hidden');
+            } else {
+                 console.error("Не найден URL для выигрышных призов");
+                 bonusLink.classList.add('hidden');
+            }
+
+            spinButton.disabled = true;
+            hasSpun = true;
+
+            const stateToSave = { hasSpun: true };
+            localStorage.setItem(localStorageKey, JSON.stringify(stateToSave));
+        }
+
+        // Обработчик клика по кнопке
+        spinButton.addEventListener('click', () => {
+            // Проверка на случай ошибки конфигурации призов
+            if (winningPrizes.some(p => !p)) {
+                 resultMessage.textContent = 'Ошибка конфигурации призов!';
+                 return;
+            }
+            if (isSpinning || hasSpun) return;
+
+            isSpinning = true;
+            spinButton.disabled = true;
+            resultMessage.textContent = 'Вращаем...';
+            bonusLink.classList.add('hidden');
+
+            const finalPositions = [];
+            let errorOccurred = false;
+
+            winningPrizes.forEach((prize, index) => {
+                if (errorOccurred) return;
+                const targetIndex = findMiddlePrizeIndex(prize.name, index);
+                if (targetIndex === -1) {
+                    errorOccurred = true; return;
+                }
+                finalPositions.push(calculateTranslateY(targetIndex));
+            });
+
+            if (errorOccurred) {
+                 isSpinning = false;
+                 resultMessage.textContent = 'Ошибка при поиске призов!';
+                 // Не включаем кнопку обратно, чтобы избежать повторных ошибок
+                 return;
+            }
+
+            reels.forEach((reelElement, index) => {
+                const randomExtraScroll = Math.floor(Math.random() * basePrizes.length) * itemHeight;
+                const targetY = finalPositions[index]; // Уже рассчитано
+                const initialFastScrollY = targetY - (basePrizes.length * itemHeight * Math.max(2, Math.floor(repetitions/2))) - randomExtraScroll;
+
+                setTimeout(() => {
+                    reelElement.style.transition = 'transform 0.5s ease-out';
+                    reelElement.style.transform = `translateY(${initialFastScrollY}px)`;
+                }, index * 50);
+
+                setTimeout(() => {
+                    reelElement.style.transition = 'transform 4.5s cubic-bezier(0.25, 1, 0.5, 1)';
+                    reelElement.style.transform = `translateY(${targetY}px)`;
+                }, 500 + index * 50);
+            });
+
+            setTimeout(() => {
+                isSpinning = false;
+                showResult();
+                spinButton.disabled = true;
+            }, 5000 + (reels.length - 1) * 50);
+        });
+
+        // Инициализация при загрузке
+        initializeReels();
+
+    </script>
+</body>
+</html>
