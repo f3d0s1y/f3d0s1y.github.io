@@ -112,7 +112,7 @@
 </head>
 <body>
     <div class="main-container bg-gray-800 p-8 rounded-lg shadow-xl text-center max-w-md w-full">
-        <h1 class="text-2xl font-bold text-yellow-400 mb-4">ТРОЙНАЯ БОНУСКА</h1>
+        <h1 class="text-2xl font-bold text-yellow-400 mb-4">Тройная бонуска</h1>
 
         <div class="reels-group-container">
             <div class="reel-container-wrapper">
@@ -151,13 +151,11 @@
         const resultMessage = document.getElementById('result-message');
         const bonusLink = document.getElementById('bonus-link');
 
-        // Обновленный базовый список призов с добавленными элементами
+        // Обновленный базовый список призов
         const basePrizes = [
-            // Выигрышные призы (должны быть в списке)
             { name: 'БОНУСКА ЗА 50.000₽ (-92%)', url: 'https://t.me/testbot1winbot?start=11' }, // Winner 1
             { name: '+150% К ДЕПОЗИТУ', url: 'https://t.me/testbot1winbot?start=11' }, // Winner 2
-            { name: 'СИГНАЛЫ НА ИГРЫ', url: 'https://t.me/testbot1winbot?start=11' }, // Winner 3
-            // Старые призы
+            { name: 'СТРАХОВКА 75%', url: 'https://t.me/testbot1winbot?start=11' }, // Winner 3 (ИЗМЕНЕНО)
             { name: '50FS' },
             { name: '100FS' },
             { name: '+100% К ДЕПОЗИТУ' },
@@ -167,7 +165,6 @@
             { name: 'БОНУСКА ЗА 100.000₽ (-95%)' },
             { name: 'ЧЕК НА 10 TON' },
             { name: 'ЧЕК НА 100 USDT' },
-            // Новые добавленные призы
             { name: 'X5 ШАНС' },
             { name: 'X10 ШАНС' },
             { name: 'ВАУЧЕР НА 5.000₽' },
@@ -175,24 +172,23 @@
             { name: 'БОНУСКА ЗА 25.000₽ (-90%)' },
             { name: '200FS' },
             { name: 'КЕШБЭК 50%' },
-            { name: 'УДВОЕНИЕ БАЛАНСА' }
+            { name: 'УДВОЕНИЕ БАЛАНСА' },
+            { name: 'СИГНАЛЫ НА ИГРЫ'} // Старый приз, теперь не выигрышный
         ];
 
         // Фиксированные выигрышные призы для каждого барабана (ссылки на объекты из basePrizes)
         const winningPrizes = [
             basePrizes.find(p => p.name === 'БОНУСКА ЗА 50.000₽ (-92%)'),
             basePrizes.find(p => p.name === '+150% К ДЕПОЗИТУ'),
-            basePrizes.find(p => p.name === 'СИГНАЛЫ НА ИГРЫ')
+            basePrizes.find(p => p.name === 'СТРАХОВКА 75%') // ИЗМЕНЕНО
         ];
 
         // Проверка, что все выигрышные призы найдены в базовом списке
         if (winningPrizes.some(p => !p)) {
             console.error("Критическая ошибка: Один или несколько выигрышных призов не найдены в базовом списке призов!");
-            // Можно добавить обработку ошибки, например, отключить кнопку
             spinButton.disabled = true;
             spinButton.textContent = "Ошибка конфигурации";
         }
-
 
         const itemHeight = 60;
         const visibleItems = 3;
@@ -202,11 +198,11 @@
         let hasSpun = false;
 
         // Ключ для localStorage
-        const localStorageKey = 'tripleReelState';
+        const localStorageKey = 'tripleReelState'; // Оставляем тот же ключ, т.к. структура выигрыша та же
 
-        const repetitions = 5; // Количество повторений списка призов для анимации
+        const repetitions = 5;
 
-        // Функция для перемешивания массива (Fisher-Yates shuffle)
+        // Функция для перемешивания массива
         function shuffleArray(array) {
             let currentIndex = array.length, randomIndex;
             const newArray = [...array];
@@ -221,15 +217,13 @@
 
         // Создаем ТРИ разных полных списка призов
         const fullPrizeLists = [[], [], []];
-        // Убедимся, что выигрышные призы добавлены достаточное кол-во раз
         const ensureWinningPrizes = (list, prizeName) => {
-            const count = list.filter(p => p.name === prizeName).length;
-            const needed = repetitions; // Нужно хотя бы по одному на каждую репетицию
+             const count = list.filter(p => p.name === prizeName).length;
+            const needed = repetitions;
             if (count < needed) {
                 const prize = basePrizes.find(p => p.name === prizeName);
                 if(prize) {
                     for(let k=0; k < needed - count; k++) {
-                        // Добавляем в случайные места в середине списка
                         const insertIndex = Math.floor(Math.random() * (basePrizes.length * (repetitions - 2))) + basePrizes.length;
                         list.splice(insertIndex, 0, prize);
                     }
@@ -245,11 +239,9 @@
             fullPrizeLists[1] = fullPrizeLists[1].concat(shuffled2);
             fullPrizeLists[2] = fullPrizeLists[2].concat(shuffled3);
         }
-        // Дополнительно проверяем и добавляем выигрышные призы, если их мало после шаффла
         winningPrizes.forEach((wp, index) => {
             if(wp) ensureWinningPrizes(fullPrizeLists[index], wp.name);
         });
-
 
         // Функция для заполнения ОДНОГО барабана ИЗ ЕГО СПИСКА
         function populateReel(reelElement, listIndex) {
@@ -363,11 +355,10 @@
                      return i;
                  }
              }
-             // Ищем во всем списке, если не нашли в середине
              console.warn(`Prize '${prizeName}' not found in the middle of list ${listIndex + 1}. Searching entire list.`);
              for (let i = 0; i < listToSearch.length; i++) {
                   if (listToSearch[i].name === prizeName) {
-                     return i; // Возвращаем первый найденный
+                     return i;
                  }
              }
              console.error(`Prize '${prizeName}' not found anywhere in list ${listIndex + 1}.`);
@@ -383,8 +374,10 @@
 
         // Функция отображения результата
         function showResult() {
+            // Текст выигрыша теперь включает новый третий приз
             resultMessage.textContent = `Вы выиграли: ${winningPrizes[0]?.name || 'Приз1'}, ${winningPrizes[1]?.name || 'Приз2'}, ${winningPrizes[2]?.name || 'Приз3'}!`;
 
+            // Ссылка одна и та же, берем из первого приза (или любого другого с URL)
             if (winningPrizes[0] && winningPrizes[0].url) {
                  bonusLink.href = winningPrizes[0].url;
                  bonusLink.classList.remove('hidden');
@@ -402,7 +395,6 @@
 
         // Обработчик клика по кнопке
         spinButton.addEventListener('click', () => {
-            // Проверка на случай ошибки конфигурации призов
             if (winningPrizes.some(p => !p)) {
                  resultMessage.textContent = 'Ошибка конфигурации призов!';
                  return;
@@ -429,13 +421,12 @@
             if (errorOccurred) {
                  isSpinning = false;
                  resultMessage.textContent = 'Ошибка при поиске призов!';
-                 // Не включаем кнопку обратно, чтобы избежать повторных ошибок
                  return;
             }
 
             reels.forEach((reelElement, index) => {
                 const randomExtraScroll = Math.floor(Math.random() * basePrizes.length) * itemHeight;
-                const targetY = finalPositions[index]; // Уже рассчитано
+                const targetY = finalPositions[index];
                 const initialFastScrollY = targetY - (basePrizes.length * itemHeight * Math.max(2, Math.floor(repetitions/2))) - randomExtraScroll;
 
                 setTimeout(() => {
